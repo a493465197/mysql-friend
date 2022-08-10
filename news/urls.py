@@ -22,6 +22,9 @@ urlpatterns = [
     path('api/delUser', api.delUser),
     path('api/delDoc', api.delDoc),
     path('api/addTag', api.addTag),
+    path('api/addDoc', api.addDoc),
+    path('api/addRating', api.addRating),
+    path('api/isLogin', api.isLogin),
 ]
 
 

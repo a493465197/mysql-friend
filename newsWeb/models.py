@@ -1,34 +1,35 @@
 from email.policy import default
-from mongoengine import *
+from django.db import models
 from datetime import datetime
 import random
 
 
-class newsina(Document):
-    content = StringField(max_length=200, required=False)
-    ctime = StringField(max_length=200, required=False)
-    url = StringField(max_length=200, required=False)
-    wapurl = StringField(max_length=200, required=False)
-    title = StringField(max_length=200, required=False)
-    media_name = StringField(max_length=200, required=False)
-    keywords = StringField(max_length=200, required=False)
-    lids = StringField(max_length=200, required=False)
-    content = StringField(max_length=200000, required=False)
-    runId1 = StringField(max_length=200, required=False)
-    id1 = StringField(max_length=200, required=False,default=str(random.random())[2:10])
+class users(models.Model):
+    username = models.CharField(max_length=200, unique=True)
+    password = models.CharField(max_length=200)
+    isAdmin = models.BooleanField(max_length=200, default=False)
+    genre = models.IntegerField(max_length=200, default= 0)
+    age = models.IntegerField(max_length=200, default= 20)
+    like_movies = models.CharField(max_length=200)
+    like_movies_title = models.CharField(max_length=200, default= '')
+    like_age = models.CharField(max_length=200)
+    time = models.CharField(max_length=200, default= '')
 
-class user(Document):
-    username = StringField(max_length=200, required=False, unique=True)
-    name = StringField(max_length=200, required=False)
-    keywords = StringField(max_length=200, required=False)
-    password = StringField(max_length=200, required=False)
-    isAdmin = BooleanField(max_length=200, required=False, default=False)
-    time = StringField(max_length=200, required=False, default= lambda : str(datetime.now()))
-    id1 = StringField(max_length=200, required=False,default=str(random.random())[2:10])
+class movies(models.Model):
+    title = models.CharField(max_length=200, primary_key=True)
+    description = models.CharField(max_length=200)
+    director = models.CharField(max_length=200)
+    topCast = models.CharField(max_length=200)
+    year = models.IntegerField(default= 2000)
+    genre = models.CharField(max_length=200)
+    actor = models.CharField(max_length=200)
+    poster = models.CharField(max_length=200)
+    date = models.CharField(max_length=200, default= '')
+    rating = models.CharField(max_length=200, default= '')
+    time = models.CharField(max_length=200, default= '')
 
-class run(Document):
-    username = StringField(max_length=200, required=False)
-    type = StringField(max_length=200, required=False)
-    count = StringField(max_length=200, required=False)
-    time = StringField(max_length=200, required=False, default= lambda : str(datetime.now()))
-    id1 = StringField(max_length=200, required=False,default=str(random.random())[2:10])
+class rating(models.Model):
+    title = models.CharField(max_length=200)
+    rating = models.IntegerField(default= 10)
+    username = models.CharField(max_length=200)
+

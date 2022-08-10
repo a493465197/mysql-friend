@@ -11,10 +11,10 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
 from pathlib import Path
-from mongoengine import *
-from . import models
+# from mongoengine import *
+# from . import models
 
-connect('pachong', host='3607h09y06.qicp.vip', port=8917, username='root', password='pachongzraipi',authentication_source='pachong') 
+# connect('pachong', host='3607h09y06.qicp.vip', port=8917, username='root', password='pachongzraipi',authentication_source='pachong') 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'newsWeb',
+    'news'
 ]
 
 MIDDLEWARE = [
@@ -77,8 +79,18 @@ WSGI_APPLICATION = 'newsWeb.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        #数据库的名字
+        'NAME': 'friend',
+        #数据库地址
+        'HOST': '3607h09y06.qicp.vip',
+        #端口
+        'PORT': '8306',
+        #用户名
+        'USER': 'friend',
+        #密码
+        "PASSWORD": 'friend',
+
     }
 }
 

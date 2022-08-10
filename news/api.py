@@ -5,51 +5,96 @@ from scrapy import cmdline
 import random
 import os
 # Create your views here.
-
+from django.db import connection
 from django.http import HttpResponse
+from django.http import JsonResponse
 from newsWeb import models
 import json
+
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
 
 def getInfo(request):
     if request.COOKIES.get('username') == None:
         return HttpResponse(json.dumps({}))
 
-    ret = models.user.objects(username = request.COOKIES.get('username')).as_pymongo()
-
-    for i in ret:
-        i['_id'] = ''
+    ret = models.users.objects.filter(username = request.COOKIES.get('username')).values()
     ret = list(ret)
+
     return HttpResponse(json.dumps({
         'code': 0,
         'value': ret[0]
     }))
 
 def reg(request):
-    models.user(**json.loads(request.body)).save()
+    models.users(**json.loads(request.body)).save()
     return HttpResponse(json.dumps({'code': 0, 'msg': '注册成功'}))
+
+def addDoc(request):
+    count = models.movies.objects.filter(**{'title': json.loads(request.body).get('title')}).count()
+    if count == 0:
+        models.movies(**json.loads(request.body)).save()
+        return HttpResponse(json.dumps({'code': 0, 'msg': 'add success'}))
+
+    else:
+        return HttpResponse(json.dumps({'code': -1, 'msg': 'has same movies'}))
+
+    
+
+def addRating(request):
+    body = json.loads(request.body)
+    h = models.rating.objects.filter(**{'username': body.get('username'), 'title': body.get('title')})
+    print(h.count())
+    if h.count() != 0:
+        h.update(**body)
+    else:
+        models.rating(**body).save()
+    # models.movies.up(**json.loads(request.body)).save()
+    userRate = models.rating.objects.filter(**{'username': body.get('username')}).order_by('-rating',).values()[0]
+    user = models.users.objects.filter(**{'username': body.get('username')})
+    movie = models.movies.objects.get(**{'title': userRate.get('title')})
+    temp = user[0].like_movies + ',' + movie.genre
+    user.update(**{'like_movies': ','.join(list(set(temp.split(','))))})
+    user.update(**{'like_movies_title': movie.title})
+    return HttpResponse(json.dumps({'code': 0, 'msg': 'rating success'}))
 
 def login(request):
     body = json.loads(request.body)
-    if models.user.objects(username = body.get('username'), password = body.get('password')).count() > 0:
+    print(models.users.objects.filter(username = body.get('username'), password = body.get('password')))
+    if models.users.objects.filter(username = body.get('username'), password = body.get('password')).count() > 0:
         h = HttpResponse(json.dumps({'code': 0, 'msg': '登录成功'}))
     else:
         h = HttpResponse(json.dumps({'code': -1, 'msg': '登录失败'}))
     h.set_cookie('username', body.get('username'))
     return h
 
-    
+def isLogin(request):
+    user = request.COOKIES.get('username')
+    print(user)
+    if user:
+        return JsonResponse({
+            'code': 0
+        })
+    else:
+        return JsonResponse({
+            'code': 1
+        })
 
 
 def docList(request):
-    ret = models.newsina.objects().limit(300).order_by('-ctime').as_pymongo()
-    for i in ret:
-        i['_id'] = ''
-    ret = list(ret)
-    return HttpResponse(json.dumps({
+    ret = models.movies.objects.filter().order_by('time').values()
+    cur = connection.cursor()
+    cur.execute("SELECT *,SUM(r.rating)/count(r.rating) rating_avg,m.title title FROM newsweb_movies m left JOIN newsweb_rating r ON m.title = r.title GROUP BY m.title")
+    res = dictfetchall(cur)
+    return JsonResponse({
         'code': 0,
-        'value': ret
-    }))
-
+        'value': res
+    })
 
 def updateDoc(request):
     body = json.loads(request.body)
@@ -65,7 +110,7 @@ def updateDoc(request):
 def setInfo(request):
     body = json.loads(request.body)
 
-    h = models.user.objects.get(**{'username': body.get('currUser') or body.get('username')})
+    h = models.users.objects.get(**{'username': body.get('currUser') or body.get('username')})
     if body.get('currUser'):
         body.pop('currUser')
     h.update(**body)
@@ -96,9 +141,9 @@ def hendleGet(request):
 
 
 def runList(request):
-    ret = models.run.objects().as_pymongo().limit(200).order_by('-time')
+    ret = models.run.objects().values().limit(200).order_by('-time')
     for i in ret:
-        i['_id'] = ''
+        i['id'] = ''
     ret = list(ret)
     return HttpResponse(json.dumps({
         'code': 0,
@@ -111,9 +156,9 @@ def logout(request):
     return h
 
 def userList(request):
-    ret = models.user.objects().as_pymongo().limit(200)
+    ret = models.users.objects.filter().values().limit(200)
     for i in ret:
-        i['_id'] = ''
+        i['id'] = ''
     ret = list(ret)
     return HttpResponse(json.dumps({
         'code': 0,
@@ -122,7 +167,7 @@ def userList(request):
 
 def delUser(request):
     body = json.loads(request.body)
-    ret = models.user.objects.get(**{'username': body.get('username')})
+    ret = models.users.objects.get(**{'username': body.get('username')})
     ret.delete()
     ret.save()
     return HttpResponse(json.dumps({
@@ -140,10 +185,10 @@ def delDoc(request):
 
 def addTag(request):
     body = json.loads(request.body)
-    ret = models.newsina.objects().as_pymongo().limit(200)
+    ret = models.newsina.objects().values().limit(200)
     flag = False
     for i in ret:
-        i['_id'] = ''
+        i['id'] = ''
         if i.get('content').find(body.get('value')) >= 0:
             flag = True
             findItem = models.newsina.objects.get(**{'id1': i['id1']})
