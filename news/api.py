@@ -9,6 +9,7 @@ from django.db import connection
 from django.http import HttpResponse
 from django.http import JsonResponse
 from newsWeb import models
+import datetime
 import json
 
 def dictfetchall(cursor):
@@ -71,7 +72,11 @@ def login(request):
     else:
         h = HttpResponse(json.dumps({'code': -1, 'msg': '登录失败'}))
     h.set_cookie('username', body.get('username'))
-    return h
+
+    #add push
+    today = datetime.date.today()
+    print(today)
+    return HttpResponse(json.dumps({'code': -1, 'msg': '登录失败'}))
 
 def isLogin(request):
     user = request.COOKIES.get('username')

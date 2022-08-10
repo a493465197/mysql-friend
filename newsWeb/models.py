@@ -33,3 +33,8 @@ class rating(models.Model):
     rating = models.IntegerField(default= 10)
     username = models.CharField(max_length=200)
 
+
+class push(models.Model):
+    username = models.CharField(max_length=200)
+    pusername = models.CharField(max_length=200)
+    time = models.CharField(max_length=200, default= '')
