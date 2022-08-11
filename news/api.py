@@ -11,7 +11,9 @@ from django.http import JsonResponse
 from newsWeb import models
 import datetime
 import json
-
+import difflib
+import string 
+import math
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dict"
     columns = [col[0] for col in cursor.description]
@@ -66,7 +68,6 @@ def addRating(request):
 
 def login(request):
     body = json.loads(request.body)
-    print(models.users.objects.filter(username = body.get('username'), password = body.get('password')))
     if models.users.objects.filter(username = body.get('username'), password = body.get('password')).count() > 0:
         h = HttpResponse(json.dumps({'code': 0, 'msg': '登录成功'}))
     else:
@@ -75,8 +76,41 @@ def login(request):
 
     #add push
     today = datetime.date.today()
-    print(today)
-    return HttpResponse(json.dumps({'code': -1, 'msg': '登录失败'}))
+    pushCount = models.push.objects.filter(**{'username': body.get('username'), 'time':today }).count()
+    if pushCount == 0:
+        users = models.users.objects.filter().values()
+        my = models.users.objects.filter(**{'username': body.get('username')}).values()[0]
+        ret = []
+        for u in users:
+            if u.get('username') == body.get('username'):
+                continue
+            like_movies = difflib.SequenceMatcher(None, my.get('like_movies'), u.get('like_movies')).ratio() / 3.3
+            like_movies_title = difflib.SequenceMatcher(None, my.get('like_movies_title'), u.get('like_movies_title')).ratio() / 3.3
+            like_age = (20 - math.fabs(my.get('age') - u.get('age')))/100/3.3
+            pusername_like_movies = ''
+            qs = models.rating.objects.filter(**{'username': u.get('username')})
+            if qs.count():
+                qslist = list(qs.values())
+                qslist.sort(key=lambda it: it['rating'], reverse= True)
+                pusername_like_movies = ','.join(map(lambda x: x['title'], qslist[0:2]))
+            print(like_age)
+            print(like_movies)
+            ret.append({
+                'username': my.get('username'),
+                'pusername': u.get('username'),
+                'time': today,
+                'like': like_age+like_movies+like_movies_title,
+                'like_movies_title': like_movies_title,
+                'like_age': like_age,
+                'like_movies': like_movies,
+                'pusername_like_movies': pusername_like_movies,
+            })
+        ret.sort(key=lambda it: it['like'], reverse=True)
+        ret[0:9]
+        print(ret[0:9])
+        for p in ret[0:9]:
+            models.push(**p).save()
+    return h
 
 def isLogin(request):
     user = request.COOKIES.get('username')
@@ -99,6 +133,47 @@ def docList(request):
     return JsonResponse({
         'code': 0,
         'value': res
+    })
+
+def getMyPush(request):
+    ret = models.movies.objects.filter().order_by('time').values()
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    user = request.COOKIES.get('username')
+    cur = connection.cursor()
+    cur.execute("SELECT *,p.like_age p_like_age,p.like_movies p_like_movies,p.like_movies_title p_like_movies_title FROM `newsweb_push` p LEFT JOIN newsweb_users u ON u.username = p.pusername WHERE p.username = '" + user +"'" + "and p.time='" + today + "'")
+    res = dictfetchall(cur)
+    return JsonResponse({
+        'code': 0,
+        'value': res
+    })
+
+def getMyChat(request):
+    user = request.COOKIES.get('username')
+    cur = connection.cursor()
+    
+    sql = "SELECT * FROM `newsweb_message` WHERE time IN (SELECT MAX(time) FROM `newsweb_message` GROUP BY username, pusername HAVING pusername='"+user+"')"
+    cur.execute(sql)
+    res = dictfetchall(cur)
+    return JsonResponse({
+        'code': 0,
+        'value': res
+    })
+
+def send(request):
+    body = json.loads(request.body)
+    models.message(**body).save()
+    return JsonResponse({
+        'code': 0,
+        # 'value': 1
+    })
+
+def getMessage(request):
+    body = json.loads(request.body)
+
+    res = models.message.objects.filter(**{'username__in': [request.COOKIES.get('username'),body.get('pusername')],'pusername__in': [request.COOKIES.get('username'),body.get('pusername')]}).order_by('time').values()
+    return JsonResponse({
+        'code': 0,
+        'value': list(res)
     })
 
 def updateDoc(request):

@@ -25,6 +25,10 @@ urlpatterns = [
     path('api/addDoc', api.addDoc),
     path('api/addRating', api.addRating),
     path('api/isLogin', api.isLogin),
+    path('api/getMyPush', api.getMyPush),
+    path('api/send', api.send),
+    path('api/getMessage', api.getMessage),
+    path('api/getMyChat', api.getMyChat),
 ]
 
 
