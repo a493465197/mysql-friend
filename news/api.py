@@ -243,7 +243,7 @@ def runList(request):
     }))
 
 def logout(request):
-    h = HttpResponse(json.dumps({'code': 0, 'msg': '登出成功'}))
+    h = HttpResponse(json.dumps({'code': 0, 'msg': 'Logout Success'}))
     h.delete_cookie('username')
     return h
 
