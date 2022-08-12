@@ -14,6 +14,8 @@ import json
 import difflib
 import string 
 import math
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dict"
     columns = [col[0] for col in cursor.description]
@@ -36,7 +38,7 @@ def getInfo(request):
 
 def reg(request):
     models.users(**json.loads(request.body)).save()
-    return HttpResponse(json.dumps({'code': 0, 'msg': '注册成功'}))
+    return HttpResponse(json.dumps({'code': 0, 'msg': 'Register Success'}))
 
 def addDoc(request):
     count = models.movies.objects.filter(**{'title': json.loads(request.body).get('title')}).count()
@@ -69,9 +71,9 @@ def addRating(request):
 def login(request):
     body = json.loads(request.body)
     if models.users.objects.filter(username = body.get('username'), password = body.get('password')).count() > 0:
-        h = HttpResponse(json.dumps({'code': 0, 'msg': '登录成功'}))
+        h = HttpResponse(json.dumps({'code': 0, 'msg': 'Ligin Success'}))
     else:
-        h = HttpResponse(json.dumps({'code': -1, 'msg': '登录失败'}))
+        h = HttpResponse(json.dumps({'code': -1, 'msg': 'Ligin Fail'}))
     h.set_cookie('username', body.get('username'))
 
     #add push
@@ -84,25 +86,23 @@ def login(request):
         for u in users:
             if u.get('username') == body.get('username'):
                 continue
-            like_movies = difflib.SequenceMatcher(None, my.get('like_movies'), u.get('like_movies')).ratio() / 3.3
-            like_movies_title = difflib.SequenceMatcher(None, my.get('like_movies_title'), u.get('like_movies_title')).ratio() / 3.3
-            like_age = (20 - math.fabs(my.get('age') - u.get('age')))/100/3.3
+            like_movies = difflib.SequenceMatcher(None, my.get('like_movies'), u.get('like_movies')).ratio() /2 
+            like_movies_title = difflib.SequenceMatcher(None, my.get('like_movies_title'), u.get('like_movies_title')).ratio() / 2
+            # like_age = (20 - math.fabs(my.get('age') - u.get('age')))/100/3.3
             pusername_like_movies = ''
             qs = models.rating.objects.filter(**{'username': u.get('username')})
             if qs.count():
                 qslist = list(qs.values())
                 qslist.sort(key=lambda it: it['rating'], reverse= True)
                 pusername_like_movies = ','.join(map(lambda x: x['title'], qslist[0:2]))
-            print(like_age)
-            print(like_movies)
             ret.append({
                 'username': my.get('username'),
                 'pusername': u.get('username'),
                 'time': today,
-                'like': like_age+like_movies+like_movies_title,
-                'like_movies_title': like_movies_title,
-                'like_age': like_age,
-                'like_movies': like_movies,
+                'like': like_movies+like_movies_title,
+                'like_movies_title': like_movies_title*2,
+                # 'like_age': like_age,
+                'like_movies': like_movies*2,
                 'pusername_like_movies': pusername_like_movies,
             })
         ret.sort(key=lambda it: it['like'], reverse=True)
@@ -175,6 +175,18 @@ def getMessage(request):
         'code': 0,
         'value': list(res)
     })
+
+def upload(request):
+    file = request.FILES.get("file", None)
+    r = str(random.random())
+    destination = open(os.path.join(BASE_DIR,'media',r+file.name),'wb+')
+    for chunk in file.chunks():      # 分块写入文件
+        destination.write(chunk)
+        destination.close()
+    return HttpResponse(json.dumps({
+        'code': 0,
+        'value': '/assets/'+r+file.name
+    }))
 
 def updateDoc(request):
     body = json.loads(request.body)

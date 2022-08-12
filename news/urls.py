@@ -29,6 +29,9 @@ urlpatterns = [
     path('api/send', api.send),
     path('api/getMessage', api.getMessage),
     path('api/getMyChat', api.getMyChat),
+
+
+    path('api/upload', api.upload),
 ]
 
 
