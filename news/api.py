@@ -60,9 +60,9 @@ def addRating(request):
     else:
         models.rating(**body).save()
     # models.movies.up(**json.loads(request.body)).save()
-    userRate = models.rating.objects.filter(**{'username': body.get('username')}).order_by('-rating',).values()[0]
+    userRate = models.rating.objects.filter(**{'username': body.get('username'), 'title': body.get('title')}).order_by('-rating',).values()[0]
     user = models.users.objects.filter(**{'username': body.get('username')})
-    movie = models.movies.objects.get(**{'title': userRate.get('title')})
+    movie = models.movies.objects.get(**{'title': str(userRate.get('title'))})
     temp = user[0].like_movies + ',' + movie.genre
     user.update(**{'like_movies': ','.join(list(set(temp.split(','))))})
     user.update(**{'like_movies_title': movie.title})
