@@ -188,17 +188,6 @@ def upload(request):
         'value': '/assets/'+r+file.name
     }))
 
-def updateDoc(request):
-    body = json.loads(request.body)
-
-    h = models.newsina.objects.get(**{'id1': body.get('id1')})
-    h.update(**{'content': body.get('content')})
-    h.save()
-
-    return HttpResponse(json.dumps({
-        'code': 0,
-        'value': 'ok'
-    }))
 def setInfo(request):
     body = json.loads(request.body)
 
@@ -213,34 +202,7 @@ def setInfo(request):
         'value': 'ok'
     }))
 
-def hendleGet(request):
-    body = json.loads(request.body)
-    id1 = str(random.random())[2:10]
-    # cmdline.execute('scrapy crawl newsina_spider'.split())
-    if body.get('value') == 'xl':
-        models.run(**{'type': '新浪网', 'username': request.COOKIES.get('username'), 'id1': id1}).save()
-        os.system('scrapy crawl newsina_spider -a id1=' + id1)
-    if body.get('value') == 'tx':
-        models.run(**{'type': '腾讯网', 'username': request.COOKIES.get('username'), 'id1': id1}).save()
-        os.system('scrapy crawl qq_spider -a id1=' + id1)
-    if body.get('value') == 'rm':
-        models.run(**{'type': '人民网', 'username': request.COOKIES.get('username'), 'id1': id1}).save()
-        os.system('scrapy crawl rm_spider -a id1=' + id1)
-    return HttpResponse(json.dumps({
-        'code': 0,
-        'value': 'ok'
-    }))
 
-
-def runList(request):
-    ret = models.run.objects().values().limit(200).order_by('-time')
-    for i in ret:
-        i['id'] = ''
-    ret = list(ret)
-    return HttpResponse(json.dumps({
-        'code': 0,
-        'value': ret
-    }))
 
 def logout(request):
     h = HttpResponse(json.dumps({'code': 0, 'msg': 'Logout Success'}))
@@ -265,35 +227,3 @@ def delUser(request):
     return HttpResponse(json.dumps({
         'code': 0,
     }))
-
-def delDoc(request):
-    body = json.loads(request.body)
-    ret = models.newsina.objects.get(**{'id1': body.get('id1')})
-    ret.delete()
-    ret.save()
-    return HttpResponse(json.dumps({
-        'code': 0,
-    }))
-
-def addTag(request):
-    body = json.loads(request.body)
-    ret = models.newsina.objects().values().limit(200)
-    flag = False
-    for i in ret:
-        i['id'] = ''
-        if i.get('content').find(body.get('value')) >= 0:
-            flag = True
-            findItem = models.newsina.objects.get(**{'id1': i['id1']})
-            findItem.update(**{'keywords': findItem['keywords'] + ',' + body.get('value')})
-            findItem.update(**{'lids': findItem['lids'] + ',' + body.get('value')})
-            findItem.save()
-    ret = list(ret)
-    if flag:
-        return HttpResponse(json.dumps({
-            'code': 0,
-        }))
-    else:
-        return HttpResponse(json.dumps({
-            'code': -1,
-            'msg': '没有找到相关新闻'
-        }))
